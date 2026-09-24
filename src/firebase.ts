@@ -91,7 +91,8 @@ export function getFriendlyAuthErrorMessage(errorCodeOrMessage: string): string 
     return 'O pop-up de login foi bloqueado pelo navegador. Por favor, libere pop-ups para este site ou utilize o cadastro/login por E-mail e Senha abaixo.';
   }
   if (code.includes('unauthorized-domain')) {
-    return 'O domínio atual ainda não está autorizado para login Google no Firebase Console. Utilize o cadastro por E-mail e Senha abaixo para continuar sem restrições.';
+    const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu-app.vercel.app';
+    return `O domínio da sua aplicação (${currentHost}) não está na lista de "Domínios Autorizados" do Firebase Console. Para liberar o login com Google no Vercel, acesse o Firebase Console > Authentication > Settings (Configurações) > Authorized domains e adicione "${currentHost}" (ou "vercel.app"). Enquanto isso, você pode se cadastrar e entrar com E-mail e Senha abaixo!`;
   }
   if (code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
     return 'Janela de login com Google fechada antes de concluir.';
