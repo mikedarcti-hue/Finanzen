@@ -109,9 +109,23 @@ export interface AIAnalysisResult {
 
 export interface UserFinancialProfile {
   name: string;
+  email?: string;
   monthlyBudgetGoal?: number;
   primaryFinancingId?: string;
   currency: string; // Default: 'BRL'
+}
+
+export interface CloudBackupItem {
+  id: string;
+  name: string;
+  createdAt: string;
+  data: AppFinancialData;
+  summary: {
+    totalExpenses: number;
+    totalIncome: number;
+    balance: number;
+    financingsCount: number;
+  };
 }
 
 export interface AppFinancialData {
@@ -121,3 +135,4 @@ export interface AppFinancialData {
   financings: Financing[];
   lastAiAnalysis?: AIAnalysisResult | null;
 }
+

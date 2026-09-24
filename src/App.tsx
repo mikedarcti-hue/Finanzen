@@ -16,6 +16,9 @@ import {
   Bell,
   Wallet,
   ShieldCheck,
+  Cloud,
+  User as UserIcon,
+  RefreshCw,
 } from 'lucide-react';
 import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { DashboardTab } from './components/DashboardTab';
@@ -27,6 +30,7 @@ import { ExpenseModal } from './components/ExpenseModal';
 import { IncomeModal } from './components/IncomeModal';
 import { FinancingModal } from './components/FinancingModal';
 import { AmortizationModal } from './components/AmortizationModal';
+import { UserAuthModal } from './components/UserAuthModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Expense, IncomeSource, Financing } from './types/finance';
@@ -45,6 +49,9 @@ function MainAppContent() {
     registerAmortization,
     overdueExpensesCount,
     dueSoonExpensesCount,
+    user,
+    syncStatus,
+    isSyncing,
   } = useFinance();
 
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -61,6 +68,8 @@ function MainAppContent() {
 
   const [isAmortizationModalOpen, setIsAmortizationModalOpen] = useState(false);
   const [amortizingFinancingId, setAmortizingFinancingId] = useState<string | null>(null);
+
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
   // Expense modal handlers
   const handleOpenNewExpense = () => {
@@ -219,13 +228,13 @@ function MainAppContent() {
             </button>
           </nav>
 
-          {/* Action CTAs & PWA Install Button */}
+          {/* Action CTAs & User Profile Button */}
           <div className="flex items-center gap-2">
             <PWAInstallButton variant="compact" />
 
             <button
               onClick={handleOpenNewExpense}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/90 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-rose-950/40 active:scale-95 transition"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-rose-600/90 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-rose-950/40 active:scale-95 transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Despesa</span>
@@ -233,10 +242,53 @@ function MainAppContent() {
 
             <button
               onClick={handleOpenNewIncome}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-950/40 active:scale-95 transition"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-950/40 active:scale-95 transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Renda</span>
+            </button>
+
+            {/* User Profile & Cloud Persistence Button */}
+            <button
+              onClick={() => setIsUserModalOpen(true)}
+              className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold shadow-sm transition active:scale-95"
+              title="Conta, Nuvem & Arquivos Salvos"
+            >
+              <div className="relative flex items-center justify-center">
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Usuário'}
+                    className="w-5 h-5 rounded-full object-cover border border-emerald-500/40"
+                  />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
+                    {user?.displayName?.charAt(0) || <UserIcon className="w-3 h-3" />}
+                  </div>
+                )}
+                {/* Cloud sync indicator dot */}
+                <span
+                  className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-slate-900 ${
+                    syncStatus === 'synced'
+                      ? 'bg-emerald-400'
+                      : syncStatus === 'saving'
+                      ? 'bg-amber-400 animate-ping'
+                      : syncStatus === 'offline'
+                      ? 'bg-rose-500'
+                      : 'bg-slate-500'
+                  }`}
+                />
+              </div>
+
+              <span className="hidden md:inline max-w-[90px] truncate text-slate-300">
+                {user ? user.displayName?.split(' ')[0] || 'Minha Conta' : 'Entrar / Nuvem'}
+              </span>
+
+              {isSyncing ? (
+                <RefreshCw className="w-3 h-3 text-amber-400 animate-spin hidden sm:inline" />
+              ) : (
+                <Cloud className={`w-3.5 h-3.5 hidden sm:inline ${user ? 'text-emerald-400' : 'text-slate-400'}`} />
+              )}
             </button>
           </div>
         </div>
@@ -407,6 +459,12 @@ function MainAppContent() {
         onConfirmAmortization={(financingId, amortData) => {
           registerAmortization(financingId, amortData);
         }}
+      />
+
+      {/* User Cloud Account & Saved Files Modal */}
+      <UserAuthModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
       />
 
       {/* Offline Toast Indicator */}

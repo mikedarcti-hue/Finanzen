@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   AppFinancialData,
   Expense,
@@ -8,11 +8,32 @@ import {
   AIAnalysisResult,
   ExpenseCategory,
   UserFinancialProfile,
+  CloudBackupItem,
 } from '../types/finance';
+import {
+  auth,
+  db,
+  googleProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  signInAnonymously,
+  type User,
+  OperationType,
+  handleFirestoreError,
+} from '../firebase';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  deleteDoc,
+} from 'firebase/firestore';
 
-const STORAGE_KEY = 'finanzen_data_v1';
+const GUEST_STORAGE_KEY = 'finanzen_guest_v1';
 
-const INITIAL_FINANCIAL_DATA: AppFinancialData = {
+export const INITIAL_FINANCIAL_DATA: AppFinancialData = {
   profile: {
     name: 'Carlos Silva',
     currency: 'BRL',
@@ -61,7 +82,7 @@ const INITIAL_FINANCIAL_DATA: AppFinancialData = {
       id: 'exp-3',
       name: 'Parcela Financiamento Apto',
       amount: 2450,
-      dueDate: '2026-09-24', // Vence amanhã!
+      dueDate: '2026-09-24',
       category: 'Moradia',
       type: 'fixo',
       status: 'Pendente',
@@ -71,7 +92,7 @@ const INITIAL_FINANCIAL_DATA: AppFinancialData = {
       id: 'exp-4',
       name: 'Plano de Saúde Familiar',
       amount: 510,
-      dueDate: '2026-09-20', // Atrasada!
+      dueDate: '2026-09-20',
       category: 'Saúde',
       type: 'fixo',
       status: 'Pendente',
@@ -80,7 +101,7 @@ const INITIAL_FINANCIAL_DATA: AppFinancialData = {
       id: 'exp-5',
       name: 'Academia & Crossfit',
       amount: 140,
-      dueDate: '2026-09-25', // Vence em 2 dias!
+      dueDate: '2026-09-25',
       category: 'Saúde',
       type: 'fixo',
       status: 'Pendente',
@@ -175,6 +196,22 @@ interface FinanceContextType {
   dueSoonExpensesCount: number;
   isAiLoading: boolean;
   aiError: string | null;
+
+  // Auth & Cloud state
+  user: User | null;
+  isAuthLoading: boolean;
+  isSyncing: boolean;
+  lastSyncedAt: Date | null;
+  syncStatus: 'synced' | 'saving' | 'offline' | 'guest';
+  cloudBackups: CloudBackupItem[];
+  isLoadingBackups: boolean;
+
+  // Auth methods
+  loginWithGoogle: () => Promise<void>;
+  loginAsGuest: () => Promise<void>;
+  logout: () => Promise<void>;
+
+  // Data Actions
   addIncome: (income: Omit<IncomeSource, 'id'>) => void;
   editIncome: (id: string, income: Partial<IncomeSource>) => void;
   deleteIncome: (id: string) => void;
@@ -213,6 +250,13 @@ interface FinanceContextType {
   exportDataAsJSON: () => string;
   importDataFromJSON: (jsonStr: string) => boolean;
   updateProfile: (profile: Partial<UserFinancialProfile>) => void;
+
+  // Cloud Snapshots / Backups per user
+  saveCloudBackup: (label: string) => Promise<void>;
+  restoreCloudBackup: (backup: CloudBackupItem) => Promise<void>;
+  deleteCloudBackup: (backupId: string) => Promise<void>;
+  refreshCloudBackups: () => Promise<void>;
+  forceCloudSync: () => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -220,15 +264,23 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'saving' | 'offline' | 'guest'>('guest');
+  const [cloudBackups, setCloudBackups] = useState<CloudBackupItem[]>([]);
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
+
   const [data, setData] = useState<AppFinancialData>(() => {
     if (typeof window === 'undefined') return INITIAL_FINANCIAL_DATA;
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(GUEST_STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
       }
     } catch (e) {
-      console.error('Failed to load financial data from storage', e);
+      console.error('Failed to load guest data', e);
     }
     return INITIAL_FINANCIAL_DATA;
   });
@@ -236,14 +288,308 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // Sync with LocalStorage
-  useEffect(() => {
+  // Avoid saving to cloud before user's cloud data has been loaded
+  const isInitialCloudLoadDone = useRef(false);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch backups for the authenticated user
+  const fetchUserBackups = async (uid: string) => {
+    setIsLoadingBackups(true);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      const backupsCol = collection(db, 'users', uid, 'backups');
+      const snap = await getDocs(backupsCol);
+      const items: CloudBackupItem[] = [];
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        items.push({
+          id: docSnap.id,
+          name: d.name || 'Backup',
+          createdAt: d.createdAt || new Date().toISOString(),
+          data: d.data,
+          summary: d.summary || {
+            totalExpenses: 0,
+            totalIncome: 0,
+            balance: 0,
+            financingsCount: 0,
+          },
+        });
+      });
+      // Sort newest first
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setCloudBackups(items);
     } catch (e) {
-      console.error('Failed to persist financial data', e);
+      console.warn('Failed to load user backups from Firestore', e);
+    } finally {
+      setIsLoadingBackups(false);
     }
-  }, [data]);
+  };
+
+  // Auth State Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setIsAuthLoading(true);
+      setUser(currentUser);
+
+      if (currentUser) {
+        setSyncStatus('saving');
+        const userStorageKey = `finanzen_user_${currentUser.uid}`;
+        try {
+          // 1. Try to read from Firestore
+          const stateDocRef = doc(db, 'users', currentUser.uid, 'state', 'current');
+          const docSnap = await getDoc(stateDocRef);
+
+          if (docSnap.exists()) {
+            const cloudData = docSnap.data() as AppFinancialData;
+            setData(cloudData);
+            localStorage.setItem(userStorageKey, JSON.stringify(cloudData));
+            setLastSyncedAt(new Date());
+            setSyncStatus('synced');
+          } else {
+            // First time this user logs in: check if local copy exists or use guest data
+            let initialUserState: AppFinancialData;
+            const localUserCopy = localStorage.getItem(userStorageKey);
+            if (localUserCopy) {
+              initialUserState = JSON.parse(localUserCopy);
+            } else {
+              initialUserState = {
+                ...data,
+                profile: {
+                  ...data.profile,
+                  name: currentUser.displayName || data.profile.name,
+                  email: currentUser.email || undefined,
+                },
+              };
+            }
+            setData(initialUserState);
+
+            // Save to Firestore so it's initialized on the cloud
+            await setDoc(stateDocRef, initialUserState);
+            // Save User Profile doc
+            await setDoc(doc(db, 'users', currentUser.uid), {
+              userId: currentUser.uid,
+              displayName: currentUser.displayName || 'Usuário FinanZen',
+              email: currentUser.email || '',
+              currency: initialUserState.profile.currency || 'BRL',
+              monthlyBudgetGoal: initialUserState.profile.monthlyBudgetGoal || 5000,
+              updatedAt: new Date().toISOString(),
+            });
+
+            localStorage.setItem(userStorageKey, JSON.stringify(initialUserState));
+            setLastSyncedAt(new Date());
+            setSyncStatus('synced');
+          }
+
+          // Fetch cloud backups for this user
+          await fetchUserBackups(currentUser.uid);
+        } catch (err) {
+          console.error('Error fetching user cloud data:', err);
+          // Fallback to local storage for this user
+          const localUserCopy = localStorage.getItem(userStorageKey);
+          if (localUserCopy) {
+            setData(JSON.parse(localUserCopy));
+          }
+          setSyncStatus('offline');
+        } finally {
+          isInitialCloudLoadDone.current = true;
+          setIsAuthLoading(false);
+        }
+      } else {
+        // User logged out: clear backups list and revert to guest data
+        setCloudBackups([]);
+        setSyncStatus('guest');
+        isInitialCloudLoadDone.current = false;
+        try {
+          const guestStored = localStorage.getItem(GUEST_STORAGE_KEY);
+          if (guestStored) {
+            setData(JSON.parse(guestStored));
+          } else {
+            setData(INITIAL_FINANCIAL_DATA);
+          }
+        } catch (e) {
+          setData(INITIAL_FINANCIAL_DATA);
+        }
+        setIsAuthLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Save changes to LocalStorage and debounce-sync to Firestore for the authenticated user
+  useEffect(() => {
+    if (user) {
+      const userKey = `finanzen_user_${user.uid}`;
+      try {
+        localStorage.setItem(userKey, JSON.stringify(data));
+      } catch (e) {
+        console.error('Failed to save to localStorage', e);
+      }
+
+      // If initial cloud load has completed, sync to Firestore
+      if (isInitialCloudLoadDone.current) {
+        setSyncStatus('saving');
+        setIsSyncing(true);
+
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+
+        syncTimeoutRef.current = setTimeout(async () => {
+          try {
+            const stateRef = doc(db, 'users', user.uid, 'state', 'current');
+            await setDoc(stateRef, data);
+            setLastSyncedAt(new Date());
+            setSyncStatus('synced');
+          } catch (e) {
+            console.error('Failed to sync data to Firestore', e);
+            setSyncStatus('offline');
+          } finally {
+            setIsSyncing(false);
+          }
+        }, 1200); // 1.2s debounce to save writes
+      }
+    } else {
+      // Guest mode
+      try {
+        localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.error('Failed to save guest data', e);
+      }
+      setSyncStatus('guest');
+    }
+
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [data, user]);
+
+  // Force cloud sync now
+  const forceCloudSync = async () => {
+    if (!user) return;
+    setIsSyncing(true);
+    setSyncStatus('saving');
+    try {
+      const stateRef = doc(db, 'users', user.uid, 'state', 'current');
+      await setDoc(stateRef, data);
+      setLastSyncedAt(new Date());
+      setSyncStatus('synced');
+    } catch (e) {
+      console.error('Force sync error', e);
+      setSyncStatus('offline');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Auth Actions
+  const loginWithGoogle = async () => {
+    try {
+      setIsAuthLoading(true);
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      console.error('Google Sign-In failed', err);
+      setIsAuthLoading(false);
+      throw err;
+    }
+  };
+
+  const loginAsGuest = async () => {
+    try {
+      setIsAuthLoading(true);
+      await signInAnonymously(auth);
+    } catch (err: any) {
+      console.error('Anonymous Sign-In failed', err);
+      setIsAuthLoading(false);
+      throw err;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      // Flush current data before logging out so nothing is lost
+      if (user) {
+        try {
+          const stateRef = doc(db, 'users', user.uid, 'state', 'current');
+          await setDoc(stateRef, data);
+        } catch (e) {
+          console.warn('Could not flush state to firestore on logout', e);
+        }
+      }
+      await signOut(auth);
+    } catch (err) {
+      console.error('Sign Out failed', err);
+    }
+  };
+
+  // Cloud Snapshots / Backups ("arquivos para cada usuário sejam guardados")
+  const saveCloudBackup = async (label: string) => {
+    if (!user) {
+      throw new Error('É necessário estar conectado com sua conta para salvar arquivos na nuvem.');
+    }
+
+    const backupId = `bkp_${Date.now()}`;
+    const newBackup: CloudBackupItem = {
+      id: backupId,
+      name: label.trim() || `Arquivo ${new Date().toLocaleDateString('pt-BR')}`,
+      createdAt: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(data)),
+      summary: {
+        totalExpenses,
+        totalIncome,
+        balance: monthlyBalance,
+        financingsCount: data.financings.length,
+      },
+    };
+
+    try {
+      const backupRef = doc(db, 'users', user.uid, 'backups', backupId);
+      await setDoc(backupRef, {
+        ...newBackup,
+        userId: user.uid,
+      });
+      setCloudBackups((prev) => [newBackup, ...prev]);
+    } catch (err) {
+      console.error('Failed to save cloud backup', err);
+      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/backups/${backupId}`);
+    }
+  };
+
+  const restoreCloudBackup = async (backup: CloudBackupItem) => {
+    if (!backup?.data) return;
+    setData(backup.data);
+    if (user) {
+      const userKey = `finanzen_user_${user.uid}`;
+      localStorage.setItem(userKey, JSON.stringify(backup.data));
+      try {
+        const stateRef = doc(db, 'users', user.uid, 'state', 'current');
+        await setDoc(stateRef, backup.data);
+        setLastSyncedAt(new Date());
+        setSyncStatus('synced');
+      } catch (e) {
+        console.error('Failed to sync restored backup', e);
+      }
+    }
+  };
+
+  const deleteCloudBackup = async (backupId: string) => {
+    if (!user) return;
+    try {
+      const backupRef = doc(db, 'users', user.uid, 'backups', backupId);
+      await deleteDoc(backupRef);
+      setCloudBackups((prev) => prev.filter((b) => b.id !== backupId));
+    } catch (err) {
+      console.error('Failed to delete backup', err);
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/backups/${backupId}`);
+    }
+  };
+
+  const refreshCloudBackups = async () => {
+    if (user) {
+      await fetchUserBackups(user.uid);
+    }
+  };
 
   // Financial calculations
   const totalIncome = data.incomes.reduce((acc, curr) => acc + curr.amount, 0);
@@ -295,7 +641,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Financing calculator with amortization adjustments
   const calculateFinancingProgress = (f: Financing) => {
-    // Total extra amortized
     const extraAmortized = f.amortizations.reduce((acc, a) => acc + a.amount, 0);
     const installmentsEliminatedByAmortization = f.amortizations.reduce(
       (acc, a) => acc + (a.installmentsEliminated || 0),
@@ -306,7 +651,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     const remainingInstallments = Math.max(0, f.totalInstallments - effectivePaidInstallments);
     const percentagePaid = Math.min(100, Math.round((effectivePaidInstallments / f.totalInstallments) * 100));
 
-    // Approximate remaining principal
     const paidPrincipalRatio = effectivePaidInstallments / f.totalInstallments;
     const remainingBalance = Math.max(0, (f.totalAmount - extraAmortized) * (1 - paidPrincipalRatio * 0.75));
     const totalPaidAmount = f.paidInstallments * f.installmentAmount + extraAmortized;
@@ -326,7 +670,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   };
 
-  // Simulate extra amortization (reduction of term vs reduction of monthly payment)
+  // Simulate amortization
   const simulateAmortization = (
     financingId: string,
     extraAmount: number,
@@ -347,14 +691,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     const monthlyRate = (f.interestRateAnnual || 10) / 100 / 12;
 
     if (type === 'reducao_prazo') {
-      // In amortizing from the tail (SAC/PRICE): each extra payment clears future installments without future interest!
-      // Principal portion per installment is approximately installmentAmount / (1 + interestFactor)
       const approxPrincipalPerInstallment = f.installmentAmount * 0.65;
       const installmentsReduced = Math.min(
         remainingInstallments - 1,
         Math.max(1, Math.round(extraAmount / approxPrincipalPerInstallment))
       );
-      // Interest saved = total payments saved minus extra amount paid
       const interestSaved = Math.max(0, installmentsReduced * f.installmentAmount - extraAmount);
 
       return {
@@ -365,9 +706,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         monthsRemainingAfter: Math.max(1, remainingInstallments - installmentsReduced),
       };
     } else {
-      // Reduction of installment amount
       const newPrincipal = Math.max(1000, remainingBalance - extraAmount);
-      // Recalculate PMT
       const factor = Math.pow(1 + monthlyRate, remainingInstallments);
       const newPMT = (newPrincipal * (monthlyRate * factor)) / (factor - 1);
       const interestSaved = Math.max(0, (f.installmentAmount - newPMT) * remainingInstallments);
@@ -555,7 +894,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const resetToDefaultData = () => {
     setData(INITIAL_FINANCIAL_DATA);
-    localStorage.removeItem(STORAGE_KEY);
+    if (user) {
+      localStorage.removeItem(`finanzen_user_${user.uid}`);
+    } else {
+      localStorage.removeItem(GUEST_STORAGE_KEY);
+    }
   };
 
   const exportDataAsJSON = () => {
@@ -565,8 +908,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const importDataFromJSON = (jsonStr: string): boolean => {
     try {
       const parsed = JSON.parse(jsonStr);
-      if (parsed && parsed.incomes && parsed.expenses && parsed.financings) {
-        setData(parsed);
+      if (parsed && (parsed.incomes || parsed.expenses || parsed.financings)) {
+        setData({
+          profile: parsed.profile || data.profile,
+          incomes: parsed.incomes || [],
+          expenses: parsed.expenses || [],
+          financings: parsed.financings || [],
+          lastAiAnalysis: parsed.lastAiAnalysis || null,
+        });
         return true;
       }
       return false;
@@ -591,6 +940,16 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         dueSoonExpensesCount,
         isAiLoading,
         aiError,
+        user,
+        isAuthLoading,
+        isSyncing,
+        lastSyncedAt,
+        syncStatus,
+        cloudBackups,
+        isLoadingBackups,
+        loginWithGoogle,
+        loginAsGuest,
+        logout,
         addIncome,
         editIncome,
         deleteIncome,
@@ -609,6 +968,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         exportDataAsJSON,
         importDataFromJSON,
         updateProfile,
+        saveCloudBackup,
+        restoreCloudBackup,
+        deleteCloudBackup,
+        refreshCloudBackups,
+        forceCloudSync,
       }}
     >
       {children}

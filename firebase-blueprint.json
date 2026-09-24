@@ -1,0 +1,257 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile settings and financial preferences",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Auth UID of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Preferred currency code (e.g. BRL, USD)"
+        },
+        "monthlyBudgetGoal": {
+          "type": "number",
+          "description": "Monthly overall budget goal"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["userId", "displayName"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Expense record for tracking bills and recurring costs",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Expense identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Expense title or vendor name"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Expense monetary amount"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Due date in YYYY-MM-DD format"
+        },
+        "category": {
+          "type": "string",
+          "description": "Expense category"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of expense (fixo or variavel)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status (Pendente or PAGO)"
+        },
+        "paidDate": {
+          "type": "string",
+          "description": "Optional payment date"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes"
+        },
+        "recurrent": {
+          "type": "boolean",
+          "description": "Whether the expense repeats monthly"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["id", "userId", "name", "amount", "dueDate", "category", "type", "status"]
+    },
+    "Income": {
+      "title": "Income",
+      "description": "Income source record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Income identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Income source name"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount in currency"
+        },
+        "type": {
+          "type": "string",
+          "description": "fixo or variavel"
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Frequency: mensal, quinzenal, semanal, esporadico"
+        },
+        "receivedDate": {
+          "type": "string",
+          "description": "Optional date when received"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["id", "userId", "name", "amount", "type", "frequency"]
+    },
+    "Financing": {
+      "title": "Financing",
+      "description": "Long-term financing, vehicle, or mortgage contract",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Financing record identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Asset or loan title"
+        },
+        "assetType": {
+          "type": "string",
+          "description": "Asset category"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total financed amount"
+        },
+        "interestRateAnnual": {
+          "type": "number",
+          "description": "Annual interest rate %"
+        },
+        "installmentAmount": {
+          "type": "number",
+          "description": "Monthly installment amount"
+        },
+        "totalInstallments": {
+          "type": "number",
+          "description": "Total number of installments"
+        },
+        "paidInstallments": {
+          "type": "number",
+          "description": "Number of installments paid so far"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date in YYYY-MM format"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional contract notes"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "assetType",
+        "totalAmount",
+        "interestRateAnnual",
+        "installmentAmount",
+        "totalInstallments",
+        "paidInstallments",
+        "startDate"
+      ]
+    },
+    "AIAnalysis": {
+      "title": "AIAnalysis",
+      "description": "AI expense analysis and cost cutting recommendations",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Analysis identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID"
+        },
+        "diagnosis": {
+          "type": "string",
+          "description": "Financial diagnosis summary"
+        },
+        "healthScore": {
+          "type": "number",
+          "description": "Financial health score 0-100"
+        },
+        "healthStatus": {
+          "type": "string",
+          "description": "Health status text"
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["id", "userId", "diagnosis", "healthScore", "healthStatus", "generatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile settings and financial preferences"
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "User expense records with due dates, amounts, categories, and payment statuses"
+    },
+    "/users/{userId}/incomes/{incomeId}": {
+      "schema": "Income",
+      "description": "User income sources (fixed or variable)"
+    },
+    "/users/{userId}/financings/{financingId}": {
+      "schema": "Financing",
+      "description": "User long-term financings, loans, installments, and amortizations"
+    },
+    "/users/{userId}/ai_analyses/{analysisId}": {
+      "schema": "AIAnalysis",
+      "description": "AI financial diagnostics, spend cuts, and optimization insights"
+    }
+  }
+}

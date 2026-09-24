@@ -1,0 +1,163 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId == userId
+        && data.displayName is string
+        && data.displayName.size() > 0
+        && data.displayName.size() <= 120
+        && (!('currency' in data) || (data.currency is string && data.currency.size() <= 10))
+        && (!('monthlyBudgetGoal' in data) || (data.monthlyBudgetGoal is number && data.monthlyBudgetGoal >= 0));
+    }
+
+    function isValidExpense(data, userId) {
+      return data.userId == userId
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 200
+        && data.amount is number
+        && data.amount >= 0
+        && data.dueDate is string
+        && data.dueDate.size() <= 30
+        && data.category is string
+        && data.category.size() <= 50
+        && data.type is string
+        && (data.type == 'fixo' || data.type == 'variável')
+        && data.status is string
+        && (data.status == 'Pendente' || data.status == 'PAGO');
+    }
+
+    function isValidIncome(data, userId) {
+      return data.userId == userId
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 200
+        && data.amount is number
+        && data.amount >= 0
+        && data.type is string
+        && (data.type == 'fixo' || data.type == 'variável')
+        && data.frequency is string
+        && data.frequency.size() <= 30;
+    }
+
+    function isValidFinancing(data, userId) {
+      return data.userId == userId
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 200
+        && data.assetType is string
+        && data.assetType.size() <= 50
+        && data.totalAmount is number
+        && data.totalAmount >= 0
+        && data.installmentAmount is number
+        && data.installmentAmount >= 0
+        && data.totalInstallments is number
+        && data.totalInstallments > 0
+        && data.paidInstallments is number
+        && data.paidInstallments >= 0;
+    }
+
+    function isValidAIAnalysis(data, userId) {
+      return data.userId == userId
+        && data.diagnosis is string
+        && data.diagnosis.size() <= 5000
+        && data.healthScore is number
+        && data.healthScore >= 0
+        && data.healthScore <= 100
+        && data.healthStatus is string
+        && data.healthStatus.size() <= 50;
+    }
+
+    // User document and subcollections
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false; // Users cannot list other users
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
+                    && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Expenses subcollection
+      match /expenses/{expenseId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(expenseId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(expenseId) && isValidExpense(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(expenseId) && isValidExpense(incoming(), userId)
+                      && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(expenseId);
+      }
+
+      // Incomes subcollection
+      match /incomes/{incomeId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(incomeId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(incomeId) && isValidIncome(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(incomeId) && isValidIncome(incoming(), userId)
+                      && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(incomeId);
+      }
+
+      // Financings subcollection
+      match /financings/{financingId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(financingId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(financingId) && isValidFinancing(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(financingId) && isValidFinancing(incoming(), userId)
+                      && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(financingId);
+      }
+
+      // AI Analyses subcollection
+      match /ai_analyses/{analysisId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(analysisId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(analysisId) && isValidAIAnalysis(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(analysisId) && isValidAIAnalysis(incoming(), userId)
+                      && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(analysisId);
+      }
+
+      // User Financial State Snapshot (for seamless atomic sync & backups per user)
+      match /state/current {
+        allow get: if isOwner(userId) && isValidId(userId);
+        allow list: if false;
+        allow write: if isOwner(userId) && isValidId(userId);
+      }
+
+      // User Cloud Snapshots and Exported Files
+      match /backups/{backupId} {
+        allow get, delete: if isOwner(userId) && isValidId(userId) && isValidId(backupId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(backupId)
+                              && incoming().userId == userId;
+      }
+    }
+  }
+}
