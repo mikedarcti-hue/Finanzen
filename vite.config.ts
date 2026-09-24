@@ -15,15 +15,16 @@ export default defineConfig(() => {
           'favicon.ico',
           'apple-touch-icon.png',
           'icon.svg',
+          'logo.png',
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-512x512.png',
         ],
         manifest: {
           id: '/',
-          name: 'FinanZen - Gestão Financeira Pessoal',
-          short_name: 'FinanZen',
-          description: 'Controle de despesas, alertas de vencimento, amortização de financiamentos e IA para corte de gastos.',
+          name: 'Gasto Inteligente - Gestão e Inteligência de Gastos',
+          short_name: 'Gasto Intel.',
+          description: 'Controle de despesas, alertas de vencimento, amortização de financiamentos e IA para economia de gastos.',
           theme_color: '#090D16',
           background_color: '#090D16',
           display: 'standalone',
@@ -59,7 +60,7 @@ export default defineConfig(() => {
           clientsClaim: true,
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
         },
       }),
@@ -72,7 +73,7 @@ export default defineConfig(() => {
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
+      hmr: false,
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },

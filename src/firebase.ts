@@ -3,9 +3,15 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   signInAnonymously,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile as updateAuthProfile,
+  sendPasswordResetEmail,
   type User,
 } from 'firebase/auth';
 import {
@@ -23,6 +29,9 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
 
 export enum OperationType {
   CREATE = 'create',
@@ -76,6 +85,44 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
+export function getFriendlyAuthErrorMessage(errorCodeOrMessage: string): string {
+  const code = errorCodeOrMessage.toLowerCase();
+  if (code.includes('popup-blocked')) {
+    return 'O pop-up de login foi bloqueado pelo navegador. Por favor, libere pop-ups para este site ou utilize o cadastro/login por E-mail e Senha abaixo.';
+  }
+  if (code.includes('unauthorized-domain')) {
+    return 'O domínio atual ainda não está autorizado para login Google no Firebase Console. Utilize o cadastro por E-mail e Senha abaixo para continuar sem restrições.';
+  }
+  if (code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
+    return 'Janela de login com Google fechada antes de concluir.';
+  }
+  if (code.includes('email-already-in-use')) {
+    return 'Este e-mail já está cadastrado. Alterne para a aba "Entrar" para fazer login.';
+  }
+  if (code.includes('invalid-email')) {
+    return 'Formato de e-mail inválido. Por favor, confira o endereço digitado.';
+  }
+  if (code.includes('wrong-password') || code.includes('invalid-credential')) {
+    return 'E-mail ou senha incorretos. Verifique suas credenciais.';
+  }
+  if (code.includes('user-not-found')) {
+    return 'Nenhum usuário encontrado com este e-mail. Crie uma conta na aba "Cadastrar".';
+  }
+  if (code.includes('weak-password')) {
+    return 'Senha muito fraca. Digite pelo menos 6 caracteres.';
+  }
+  if (code.includes('operation-not-allowed')) {
+    return 'Este método de login não está ativado no Firebase Console. Use o cadastro por E-mail e Senha.';
+  }
+  if (code.includes('too-many-requests')) {
+    return 'Muitas tentativas consecutivas. Aguarde alguns instantes antes de tentar novamente.';
+  }
+  if (code.includes('network-request-failed')) {
+    return 'Falha na conexão de internet. Verifique sua rede.';
+  }
+  return errorCodeOrMessage;
+}
+
 // Test initial connection as required by Skill
 export async function testConnection() {
   try {
@@ -92,5 +139,16 @@ export async function testConnection() {
 
 testConnection();
 
-export { signInWithPopup, signOut, onAuthStateChanged, signInAnonymously };
+export {
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  onAuthStateChanged,
+  signInAnonymously,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateAuthProfile,
+  sendPasswordResetEmail,
+};
 export type { User };

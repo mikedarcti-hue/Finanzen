@@ -16,6 +16,14 @@ import {
   ShieldCheck,
   AlertCircle,
   HardDrive,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  UserPlus,
+  KeyRound,
+  ArrowRight,
+  Info,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency } from '../utils/formatters';
@@ -35,6 +43,9 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
     cloudBackups,
     isLoadingBackups,
     loginWithGoogle,
+    registerWithEmail,
+    loginWithEmail,
+    resetPassword,
     loginAsGuest,
     logout,
     forceCloudSync,
@@ -52,7 +63,87 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
+  // Auth form states
+  const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleGoogleLogin = async () => {
+    setAuthError(null);
+    try {
+      await loginWithGoogle();
+      setFeedbackMessage('Conectado com o Google com sucesso!');
+      setTimeout(() => setFeedbackMessage(null), 3500);
+    } catch (err: any) {
+      setAuthError(err.message || 'Falha ao autenticar com o Google.');
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+
+    const trimmedEmail = email.trim();
+    const trimmedPass = password.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedEmail || !trimmedPass) {
+      setAuthError('Preencha o e-mail e a senha.');
+      return;
+    }
+
+    if (authMode === 'register' && !trimmedName) {
+      setAuthError('Informe seu nome para concluir o cadastro.');
+      return;
+    }
+
+    if (trimmedPass.length < 6) {
+      setAuthError('A senha precisa ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (authMode === 'register') {
+        await registerWithEmail(trimmedEmail, trimmedPass, trimmedName);
+        setFeedbackMessage('Cadastro realizado com sucesso! Seus dados foram guardados na sua conta.');
+      } else {
+        await loginWithEmail(trimmedEmail, trimmedPass);
+        setFeedbackMessage('Login realizado com sucesso! Suas informações foram carregadas.');
+      }
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err: any) {
+      setAuthError(err.message || 'Erro ao processar sua solicitação.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setAuthError('Digite seu e-mail no campo acima para enviarmos o link de recuperação.');
+      return;
+    }
+    setIsResettingPassword(true);
+    setAuthError(null);
+    try {
+      await resetPassword(trimmedEmail);
+      setFeedbackMessage(`Link de redefinição enviado para ${trimmedEmail}! Verifique sua caixa de entrada.`);
+      setTimeout(() => setFeedbackMessage(null), 6000);
+    } catch (err: any) {
+      setAuthError(err.message || 'Falha ao enviar e-mail de recuperação.');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
 
   const handleCreateBackup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,62 +417,219 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
                   </div>
                 </>
               ) : (
-                /* Unauthenticated View */
-                <div className="space-y-4 text-center py-2">
-                  <div className="w-16 h-16 mx-auto rounded-3xl overflow-hidden bg-black border border-emerald-500/40 shadow-xl shadow-emerald-950/40 flex items-center justify-center p-1">
-                    <img src="/logo.png" alt="Gasto Inteligente" className="w-full h-full object-cover rounded-2xl" />
-                  </div>
-                  <div>
+                /* Unauthenticated View: Full Cadastro & Login */
+                <div className="space-y-4 py-1">
+                  {/* Branding Header */}
+                  <div className="text-center space-y-1.5">
+                    <div className="w-12 h-12 mx-auto rounded-2xl overflow-hidden bg-black border border-emerald-500/40 shadow-lg shadow-emerald-950/40 flex items-center justify-center p-0.5">
+                      <img src="/logo.png" alt="Gasto Inteligente" className="w-full h-full object-cover rounded-xl" />
+                    </div>
                     <h4 className="font-bold text-base text-slate-100">
-                      Entrar no <span className="text-white">Gasto</span> <span className="text-emerald-400">Inteligente</span>
+                      Acesse o <span className="text-white">Gasto</span> <span className="text-emerald-400">Inteligente</span>
                     </h4>
-                    <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1">
-                      Conecte sua conta para garantir que seus arquivos e dados financeiros fiquem
-                      guardados para sempre na nuvem Firebase.
+                    <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+                      Seus arquivos, despesas, rendas e contratos de financiamento ficam salvos com segurança na nuvem Firebase.
                     </p>
                   </div>
 
-                  <div className="space-y-2.5 pt-2">
+                  {/* Mode Switcher: Cadastrar vs Entrar */}
+                  <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-semibold">
                     <button
-                      onClick={async () => {
-                        try {
-                          await loginWithGoogle();
-                        } catch (e) {
-                          // Handled in context
-                        }
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('register');
+                        setAuthError(null);
                       }}
-                      disabled={isAuthLoading}
-                      className="w-full py-3 px-4 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs flex items-center justify-center gap-2.5 shadow-lg active:scale-95 transition"
+                      className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
+                        authMode === 'register'
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-950/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.98 0 12s.45 3.84 1.25 5.42l4.03-3.15z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                        />
-                      </svg>
-                      <span>Entrar com Conta Google</span>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Cadastrar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setAuthError(null);
+                      }}
+                      className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
+                        authMode === 'login'
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-950/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <LogIn className="w-3.5 h-3.5" />
+                      <span>Entrar</span>
+                    </button>
+                  </div>
+
+                  {/* Error Alert Box */}
+                  {authError && (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-fadeIn">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium leading-relaxed">{authError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Google 1-Click Auth Button */}
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      disabled={isAuthLoading || isSubmitting}
+                      className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs flex items-center justify-center gap-2.5 shadow-md active:scale-98 transition disabled:opacity-50"
+                    >
+                      {isAuthLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-slate-700" />
+                      ) : (
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.98 0 12s.45 3.84 1.25 5.42l4.03-3.15z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                          />
+                        </svg>
+                      )}
+                      <span>
+                        {authMode === 'register' ? 'Cadastrar com Conta Google' : 'Entrar com Conta Google'}
+                      </span>
                     </button>
 
-                    <button
-                      onClick={loginAsGuest}
-                      disabled={isAuthLoading}
-                      className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold flex items-center justify-center gap-2 transition"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      <span>Acesso Rápido Anônimo (Salvar na Nuvem)</span>
-                    </button>
+                    {/* Divider */}
+                    <div className="relative flex items-center justify-center my-3">
+                      <div className="border-t border-slate-800 w-full" />
+                      <span className="bg-[#0D121F] px-3 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                        Ou com e-mail e senha
+                      </span>
+                    </div>
+
+                    {/* Email/Password Form */}
+                    <form onSubmit={handleEmailAuth} className="space-y-3">
+                      {authMode === 'register' && (
+                        <div className="space-y-1 text-left">
+                          <label className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Seu Nome Completo</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Ex: Carlos Silva"
+                            required={authMode === 'register'}
+                            className="w-full bg-slate-900/90 border border-slate-800 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-1 text-left">
+                        <label className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-slate-400" />
+                          <span>E-mail</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="seu@email.com"
+                          required
+                          className="w-full bg-slate-900/90 border border-slate-800 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
+                        />
+                      </div>
+
+                      <div className="space-y-1 text-left">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <Lock className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Senha</span>
+                          </label>
+                          {authMode === 'login' && (
+                            <button
+                              type="button"
+                              onClick={handleForgotPassword}
+                              disabled={isResettingPassword}
+                              className="text-[10px] text-emerald-400 hover:text-emerald-300 hover:underline"
+                            >
+                              {isResettingPassword ? 'Enviando...' : 'Esqueci minha senha'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder={authMode === 'register' ? 'Mínimo 6 caracteres' : 'Sua senha'}
+                            required
+                            minLength={6}
+                            className="w-full bg-slate-900/90 border border-slate-800 focus:border-emerald-500 rounded-xl pl-3 pr-9 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-0.5"
+                          >
+                            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Submit Button */}
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || isAuthLoading}
+                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-98 transition disabled:opacity-50 mt-2"
+                      >
+                        {isSubmitting ? (
+                          <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                        ) : authMode === 'register' ? (
+                          <>
+                            <UserPlus className="w-4 h-4" />
+                            <span>Criar Conta & Sincronizar Tudo na Nuvem</span>
+                          </>
+                        ) : (
+                          <>
+                            <LogIn className="w-4 h-4" />
+                            <span>Entrar na Minha Conta</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+
+                    {/* Anonymous Access fallback */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={loginAsGuest}
+                        disabled={isAuthLoading || isSubmitting}
+                        className="w-full py-2 px-3 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-[11px] font-medium flex items-center justify-center gap-1.5 transition"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Continuar sem cadastro (Modo Convidado na nuvem)</span>
+                      </button>
+                    </div>
+
+                    {/* Reassurance note */}
+                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 text-[10px] text-slate-400 text-center flex items-center justify-center gap-1.5 mt-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Todos os seus gastos já adicionados serão vinculados automaticamente.</span>
+                    </div>
                   </div>
                 </div>
               )}

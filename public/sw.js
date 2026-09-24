@@ -1,10 +1,11 @@
-const CACHE_NAME = 'finanzen-cache-v1';
+const CACHE_NAME = 'gasto-inteligente-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/manifest.json',
   '/icon.svg',
+  '/logo.png',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
   '/apple-touch-icon.png',
@@ -38,8 +39,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass through non-GET and API calls to network
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+  // Pass through non-GET, API calls, and development/Vite requests to network directly
+  if (
+    event.request.method !== 'GET' ||
+    event.request.url.includes('/api/') ||
+    event.request.url.includes('/@') ||
+    event.request.url.includes('/src/') ||
+    event.request.url.includes('/node_modules/') ||
+    event.request.url.includes('?v=') ||
+    event.request.url.includes('?t=')
+  ) {
     return;
   }
 

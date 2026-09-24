@@ -18,6 +18,11 @@ import {
   signOut,
   onAuthStateChanged,
   signInAnonymously,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateAuthProfile,
+  sendPasswordResetEmail,
+  getFriendlyAuthErrorMessage,
   type User,
   OperationType,
   handleFirestoreError,
@@ -208,6 +213,9 @@ interface FinanceContextType {
 
   // Auth methods
   loginWithGoogle: () => Promise<void>;
+  registerWithEmail: (email: string, password: string, name: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   loginAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
 
@@ -491,7 +499,47 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Google Sign-In failed', err);
       setIsAuthLoading(false);
-      throw err;
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
+    }
+  };
+
+  const registerWithEmail = async (email: string, password: string, name: string) => {
+    try {
+      setIsAuthLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      if (name.trim()) {
+        try {
+          await updateAuthProfile(userCredential.user, {
+            displayName: name.trim(),
+          });
+        } catch (profileErr) {
+          console.warn('Could not set displayName on profile immediately', profileErr);
+        }
+      }
+    } catch (err: any) {
+      console.error('Email registration failed', err);
+      setIsAuthLoading(false);
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
+    }
+  };
+
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      setIsAuthLoading(true);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch (err: any) {
+      console.error('Email sign-in failed', err);
+      setIsAuthLoading(false);
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+    } catch (err: any) {
+      console.error('Password reset failed', err);
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
     }
   };
 
@@ -502,7 +550,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Anonymous Sign-In failed', err);
       setIsAuthLoading(false);
-      throw err;
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
     }
   };
 
@@ -948,6 +996,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         cloudBackups,
         isLoadingBackups,
         loginWithGoogle,
+        registerWithEmail,
+        loginWithEmail,
+        resetPassword,
         loginAsGuest,
         logout,
         addIncome,

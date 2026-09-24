@@ -244,7 +244,7 @@ async function startServer() {
   if (!isProd) {
     const { createServer } = await import('vite');
     const vite = await createServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -257,7 +257,7 @@ async function startServer() {
   }
 
   app.listen(PORT, () => {
-    console.log(`🚀 FinanZen server running on http://localhost:${PORT}`);
+    console.log(`🚀 Gasto Inteligente server running on http://localhost:${PORT}`);
   });
 }
 
