@@ -1,0 +1,6 @@
+{
+  "name": "FinanZen PWA - Gestão Financeira & IA",
+  "description": "Aplicativo PWA de gestão financeira pessoal com controle de despesas, alertas de vencimento, amortização de financiamentos e assistente IA de corte de gastos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

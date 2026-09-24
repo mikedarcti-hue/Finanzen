@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="50%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#065F46" stop-opacity="0.2" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Background base with subtle border -->
+  <rect width="512" height="512" rx="112" fill="#090D16" />
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#glow)" opacity="0.15" />
+  
+  <!-- Shield / Emblem -->
+  <g filter="url(#shadow)">
+    <rect x="76" y="76" width="360" height="360" rx="80" fill="url(#grad1)" />
+  </g>
+
+  <!-- Graph Growth & Financial Spark Elements -->
+  <path d="M140 330 L210 260 L270 300 L370 190" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="375,175 375,235 315,175" fill="#FFFFFF" />
+
+  <!-- Currency / AI Sparkle symbol -->
+  <circle cx="210" cy="260" r="14" fill="#A7F3D0" />
+  <circle cx="270" cy="300" r="14" fill="#A7F3D0" />
+  
+  <path d="M330 130 C330 115 340 105 355 105 C340 105 330 95 330 80 C330 95 320 105 305 105 C320 105 330 115 330 130 Z" fill="#FDE047" />
+  <path d="M170 160 C170 150 178 142 188 142 C178 142 170 134 170 124 C170 134 162 142 152 142 C162 142 170 150 170 160 Z" fill="#FDE047" />
+
+  <!-- Subtle grid lines inside shield -->
+  <line x1="140" y1="360" x2="370" y2="360" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="6" stroke-linecap="round" />
+</svg>
