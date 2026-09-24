@@ -230,7 +230,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-slate-100 text-base truncate">
-                          {user.displayName || 'Usuário FinanZen'}
+                          {user.displayName || 'Usuário Gasto Inteligente'}
                         </h4>
                         <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                           {user.isAnonymous ? 'Convidado' : 'Google'}
@@ -328,12 +328,12 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
               ) : (
                 /* Unauthenticated View */
                 <div className="space-y-4 text-center py-2">
-                  <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 shadow-xl">
-                    <UserIcon className="w-8 h-8" />
+                  <div className="w-16 h-16 mx-auto rounded-3xl overflow-hidden bg-black border border-emerald-500/40 shadow-xl shadow-emerald-950/40 flex items-center justify-center p-1">
+                    <img src="/logo.png" alt="Gasto Inteligente" className="w-full h-full object-cover rounded-2xl" />
                   </div>
                   <div>
                     <h4 className="font-bold text-base text-slate-100">
-                      Entrar no FinanZen
+                      Entrar no <span className="text-white">Gasto</span> <span className="text-emerald-400">Inteligente</span>
                     </h4>
                     <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1">
                       Conecte sua conta para garantir que seus arquivos e dados financeiros fiquem

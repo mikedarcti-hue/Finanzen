@@ -276,7 +276,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           <div>
             <div className="flex items-center gap-2 text-emerald-400 mb-2">
               <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Copilot FinanZen IA</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Copilot Gasto Inteligente IA</span>
             </div>
             <h4 className="text-sm font-semibold text-white mb-1.5">
               Descubra onde cortar gastos e quitar financiamentos antes

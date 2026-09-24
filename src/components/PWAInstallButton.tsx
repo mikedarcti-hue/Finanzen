@@ -42,7 +42,7 @@ export const PWAInstallButton: React.FC<{ variant?: 'compact' | 'full' }> = ({ v
         className={`group flex items-center gap-2 font-medium text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 transition-all shadow-lg shadow-emerald-950/40 rounded-lg border border-emerald-400/30 ${
           variant === 'full' ? 'w-full justify-center py-2.5 px-4' : 'py-1.5 px-3'
         }`}
-        title="Instalar FinanZen no celular ou computador"
+        title="Instalar Gasto Inteligente no celular ou computador"
       >
         <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
         <span>Instalar App</span>
@@ -74,13 +74,13 @@ export const PWAInstallButton: React.FC<{ variant?: 'compact' | 'full' }> = ({ v
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
-                <Smartphone className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-black border border-emerald-500/30 flex items-center justify-center mb-4">
+                <img src="/logo.png" alt="Gasto Inteligente" className="w-full h-full object-cover" />
               </div>
 
               <h3 className="text-lg font-bold text-white mb-2">Instalar no iPhone / iPad</h3>
               <p className="text-xs text-slate-400 mb-4">
-                Siga 2 passos simples no Safari para ter o FinanZen como app nativo:
+                Siga 2 passos simples no Safari para ter o Gasto Inteligente como app nativo:
               </p>
 
               <ol className="space-y-3 text-xs text-slate-300 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 mb-5">
@@ -115,7 +115,7 @@ export const PWAInstallButton: React.FC<{ variant?: 'compact' | 'full' }> = ({ v
         className={`flex items-center gap-1.5 font-medium text-xs text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-lg transition-all ${
           variant === 'full' ? 'w-full justify-center py-2.5 px-4' : 'py-1.5 px-2.5'
         }`}
-        title="Instalar Aplicativo FinanZen (PWA)"
+        title="Instalar Aplicativo Gasto Inteligente (PWA)"
       >
         <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
         <span className="hidden sm:inline">PWA / App</span>
@@ -132,13 +132,13 @@ export const PWAInstallButton: React.FC<{ variant?: 'compact' | 'full' }> = ({ v
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
-              <Download className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden bg-black border border-emerald-500/30 flex items-center justify-center mb-4">
+              <img src="/logo.png" alt="Gasto Inteligente" className="w-full h-full object-cover" />
             </div>
 
-            <h3 className="text-lg font-bold text-white mb-2">Instalar FinanZen</h3>
+            <h3 className="text-lg font-bold text-white mb-2">Instalar Gasto Inteligente</h3>
             <p className="text-xs text-slate-400 mb-4">
-              O FinanZen é um Progressive Web App (PWA) 100% offline e instalável sem lojas de aplicativos:
+              O Gasto Inteligente é um Progressive Web App (PWA) 100% offline e instalável sem lojas de aplicativos:
             </p>
 
             <div className="space-y-3 text-xs text-slate-300 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 mb-5">

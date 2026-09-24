@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "FinanZen - Gestão Financeira Pessoal",
-  "short_name": "FinanZen",
-  "description": "Controle de despesas, alertas de vencimento, amortização de financiamentos e IA para corte de gastos.",
+  "name": "Gasto Inteligente - Gestão e Inteligência de Gastos",
+  "short_name": "Gasto Inteligente",
+  "description": "Controle de despesas, alertas de vencimento, amortização de financiamentos e IA para economia de gastos.",
   "theme_color": "#090D16",
   "background_color": "#090D16",
   "display": "standalone",

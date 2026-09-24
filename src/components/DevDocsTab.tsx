@@ -51,7 +51,7 @@ export const DevDocsTab: React.FC = () => {
     }
   };
 
-  const SYSTEM_PROMPT_DOC = `Você é o "FinanZen Copilot", um consultor financeiro sênior especializado em finanças pessoais, economia comportamental e matemática de amortização acelerada (métodos SAC e PRICE).
+  const SYSTEM_PROMPT_DOC = `Você é o "Gasto Inteligente Copilot", um consultor financeiro sênior especializado em finanças pessoais, economia comportamental e matemática de amortização acelerada (métodos SAC e PRICE).
 
 Seu objetivo é analisar minuciosamente o raio-x financeiro do usuário (fontes de renda, despesas fixas e variáveis com seus vencimentos, e dívidas/financiamentos de longo prazo) e fornecer:
 1. "diagnosis": Diagnóstico direto da saúde financeira (grau de comprometimento da renda, risco de endividamento e índice de liquidez).
@@ -137,7 +137,7 @@ Você DEVE responder SEMPRE em formato JSON estrito, respeitando as propriedades
           <span>Gerenciamento de Dados (LocalStorage & Export/Import JSON)</span>
         </h3>
         <p className="text-xs text-slate-400">
-          O FinanZen funciona 100% offline via LocalStorage e está totalmente preparado para ser conectado a bancos de dados na nuvem (Supabase, Firebase Firestore ou PostgreSQL).
+          O Gasto Inteligente funciona 100% offline via LocalStorage e sincronizado em nuvem Firebase Firestore.
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -170,7 +170,7 @@ Você DEVE responder SEMPRE em formato JSON estrito, respeitando as propriedades
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              placeholder="Cole aqui o JSON exportado do FinanZen..."
+              placeholder="Cole aqui o JSON exportado do Gasto Inteligente..."
               value={importJsonText}
               onChange={(e) => setImportJsonText(e.target.value)}
               className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500/60"
@@ -242,7 +242,7 @@ Você DEVE responder SEMPRE em formato JSON estrito, respeitando as propriedades
             <span>Como Hospedar na Vercel (PWA)</span>
           </h3>
           <p className="text-xs text-slate-400">
-            Passo a passo para publicar o FinanZen com HTTPS obrigatório e suporte completo a Service Worker e PWA:
+            Passo a passo para publicar o Gasto Inteligente com HTTPS obrigatório e suporte completo a Service Worker e PWA:
           </p>
 
           <ol className="space-y-2 text-xs text-slate-300 list-decimal list-inside bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/70">
@@ -276,7 +276,7 @@ Você DEVE responder SEMPRE em formato JSON estrito, respeitando as propriedades
               <p className="text-slate-400 mb-2">Gera um projeto Android nativo completo com Gradle e Android Studio:</p>
               <div className="p-2 bg-black/80 rounded font-mono text-[10px] text-slate-300 space-y-1">
                 <p>npm i @capacitor/core @capacitor/cli @capacitor/android</p>
-                <p>npx cap init FinanZen com.finanzen.app</p>
+                <p>npx cap init "Gasto Inteligente" com.gastointeligente.app</p>
                 <p>npm run build</p>
                 <p>npx cap add android</p>
                 <p>npx cap open android</p>

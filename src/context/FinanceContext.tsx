@@ -367,7 +367,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
             // Save User Profile doc
             await setDoc(doc(db, 'users', currentUser.uid), {
               userId: currentUser.uid,
-              displayName: currentUser.displayName || 'Usuário FinanZen',
+              displayName: currentUser.displayName || 'Usuário Gasto Inteligente',
               email: currentUser.email || '',
               currency: initialUserState.profile.currency || 'BRL',
               monthlyBudgetGoal: initialUserState.profile.monthlyBudgetGoal || 5000,

@@ -109,7 +109,7 @@ export const AiAssistantTab: React.FC<AiAssistantTabProps> = ({ onNavigateToTab 
           </div>
           <h3 className="text-base font-bold text-white">Cruzando dados de receitas, despesas e juros...</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            O Copilot FinanZen está auditando o comprometimento de renda, rastreando despesas supérfluas e calculando amortizações.
+            O Copilot Gasto Inteligente está auditando o comprometimento de renda, rastreando despesas supérfluas e calculando amortizações.
           </p>
         </div>
       )}

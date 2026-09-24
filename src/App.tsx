@@ -31,6 +31,7 @@ import { IncomeModal } from './components/IncomeModal';
 import { FinancingModal } from './components/FinancingModal';
 import { AmortizationModal } from './components/AmortizationModal';
 import { UserAuthModal } from './components/UserAuthModal';
+import { GastoInteligenteLogo } from './components/GastoInteligenteLogo';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { Expense, IncomeSource, Financing } from './types/finance';
@@ -141,25 +142,8 @@ function MainAppContent() {
       <header className="sticky top-0 z-40 bg-[#090D16]/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 p-[1px] shadow-lg shadow-emerald-950/50 flex items-center justify-center">
-              <div className="w-full h-full bg-slate-950 rounded-[15px] flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-emerald-400" />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                  FinanZen
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  PWA
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Gestão Financeira & IA
-              </p>
-            </div>
+          <div className="cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+            <GastoInteligenteLogo size="md" showSubtitle={true} />
           </div>
 
           {/* Desktop Nav Links */}

@@ -1,5 +1,5 @@
 /**
- * Modelagem de Dados Completa - FinanZen
+ * Modelagem de Dados Completa - Gasto Inteligente
  * TypeScript Interfaces para Transações, Financiamentos e Perfil
  */
 
