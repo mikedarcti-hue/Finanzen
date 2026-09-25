@@ -24,6 +24,11 @@ import {
   KeyRound,
   ArrowRight,
   Info,
+  ExternalLink,
+  Settings,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency } from '../utils/formatters';
@@ -72,6 +77,11 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showFirebaseGuide, setShowFirebaseGuide] = useState(false);
+
+  const firebaseProjectId = 'chrome-perigee-bsmzh';
+  const firebaseProvidersUrl = `https://console.firebase.google.com/project/${firebaseProjectId}/authentication/providers`;
+  const firebaseSettingsUrl = `https://console.firebase.google.com/project/${firebaseProjectId}/authentication/settings`;
 
   if (!isOpen) return null;
 
@@ -466,15 +476,110 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ isOpen, onClose })
                     </button>
                   </div>
 
-                  {/* Error Alert Box */}
+                  {/* Error Alert Box with Action Link */}
                   {authError && (
                     <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-fadeIn">
                       <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-                      <div className="flex-1 space-y-1">
+                      <div className="flex-1 space-y-2">
                         <p className="font-medium leading-relaxed">{authError}</p>
+                        {authError.includes('Firebase Console') && (
+                          <div className="pt-1 flex flex-wrap gap-2">
+                            <a
+                              href={firebaseProvidersUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-white font-semibold text-[11px] transition"
+                            >
+                              <span>Ativar Métodos no Firebase</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            <a
+                              href={firebaseSettingsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-[11px] transition"
+                            >
+                              <span>Domínios Autorizados</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
+
+                  {/* Firebase Setup Helper Accordion */}
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setShowFirebaseGuide(!showFirebaseGuide)}
+                      className="w-full px-3 py-2 flex items-center justify-between text-slate-300 hover:text-white transition font-medium text-[11px]"
+                    >
+                      <span className="flex items-center gap-1.5 text-amber-400">
+                        <Settings className="w-3.5 h-3.5" />
+                        <span>Configurar Firebase Console (Sign-in Methods)</span>
+                      </span>
+                      {showFirebaseGuide ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                    </button>
+
+                    {showFirebaseGuide && (
+                      <div className="p-3 border-t border-slate-800 bg-slate-950/80 space-y-2.5 text-[11px] text-slate-300">
+                        <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                          <span className="text-slate-400">Projeto Firebase:</span>
+                          <code className="text-emerald-400 font-mono font-bold text-[10px] bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                            {firebaseProjectId}
+                          </code>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <p className="font-semibold text-slate-200">
+                            Passo a passo no Firebase Console:
+                          </p>
+                          <ol className="list-decimal list-inside space-y-1 text-slate-400 text-[10px]">
+                            <li>
+                              Acesse o Firebase Console com seu e-mail Google (
+                              <strong className="text-slate-300">mikedarcti@gmail.com</strong>).
+                            </li>
+                            <li>
+                              Vá em <strong className="text-slate-300">Authentication &gt; Sign-in method</strong> e ative os provedores:
+                              <ul className="list-disc list-inside pl-3 pt-0.5 text-slate-400">
+                                <li><strong className="text-emerald-400">Google</strong> (informe seu e-mail de suporte).</li>
+                                <li><strong className="text-emerald-400">E-mail/senha</strong>.</li>
+                              </ul>
+                            </li>
+                            <li>
+                              Vá em <strong className="text-slate-300">Configurações (Settings) &gt; Domínios autorizados</strong> e adicione o domínio do seu app (ex: <code className="text-slate-200">vercel.app</code>).
+                            </li>
+                          </ol>
+                        </div>
+
+                        <div className="pt-1 flex flex-col sm:flex-row gap-2">
+                          <a
+                            href={firebaseProvidersUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-center flex items-center justify-center gap-1.5 transition text-[10px]"
+                          >
+                            <span>1. Abrir Sign-in method</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <a
+                            href={firebaseSettingsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-center flex items-center justify-center gap-1.5 transition text-[10px]"
+                          >
+                            <span>2. Abrir Domínios Autorizados</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Google 1-Click Auth Button */}
                   <div className="space-y-2">

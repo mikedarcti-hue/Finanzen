@@ -85,35 +85,43 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-export function getFriendlyAuthErrorMessage(errorCodeOrMessage: string): string {
+export function getFriendlyAuthErrorMessage(
+  errorCodeOrMessage: string,
+  provider?: 'google' | 'email'
+): string {
   const code = errorCodeOrMessage.toLowerCase();
-  if (code.includes('popup-blocked')) {
-    return 'O pop-up de login foi bloqueado pelo navegador. Por favor, libere pop-ups para este site ou utilize o cadastro/login por E-mail e Senha abaixo.';
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu-app.vercel.app';
+  const projectId = firebaseConfig.projectId || 'chrome-perigee-bsmzh';
+
+  if (code.includes('operation-not-allowed')) {
+    if (provider === 'google') {
+      return `O método "Google" ainda não está ativado no Firebase Console do projeto (${projectId}). Acesse o console em Authentication > Sign-in method e ative o provedor Google.`;
+    }
+    return `O método "E-mail/senha" ainda não está ativado no Firebase Console do projeto (${projectId}). Acesse o console em Authentication > Sign-in method e ative o provedor E-mail/senha.`;
   }
   if (code.includes('unauthorized-domain')) {
-    const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu-app.vercel.app';
-    return `O domínio da sua aplicação (${currentHost}) não está na lista de "Domínios Autorizados" do Firebase Console. Para liberar o login com Google no Vercel, acesse o Firebase Console > Authentication > Settings (Configurações) > Authorized domains e adicione "${currentHost}" (ou "vercel.app"). Enquanto isso, você pode se cadastrar e entrar com E-mail e Senha abaixo!`;
+    return `O domínio (${currentHost}) não está na lista de "Domínios Autorizados" do Firebase Console. Acesse Authentication > Settings > Authorized domains no projeto (${projectId}) e adicione "${currentHost}" e "vercel.app".`;
+  }
+  if (code.includes('popup-blocked')) {
+    return 'O pop-up de login foi bloqueado pelo navegador. Por favor, libere pop-ups para este site ou utilize o cadastro/login por E-mail e Senha.';
   }
   if (code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
     return 'Janela de login com Google fechada antes de concluir.';
   }
   if (code.includes('email-already-in-use')) {
-    return 'Este e-mail já está cadastrado. Alterne para a aba "Entrar" para fazer login.';
+    return 'Este e-mail já está cadastrado. Alterne para a aba "Entrar" para fazer login com sua senha.';
   }
   if (code.includes('invalid-email')) {
     return 'Formato de e-mail inválido. Por favor, confira o endereço digitado.';
   }
   if (code.includes('wrong-password') || code.includes('invalid-credential')) {
-    return 'E-mail ou senha incorretos. Verifique suas credenciais.';
+    return 'E-mail ou senha incorretos. Verifique suas credenciais ou use "Esqueci minha senha".';
   }
   if (code.includes('user-not-found')) {
     return 'Nenhum usuário encontrado com este e-mail. Crie uma conta na aba "Cadastrar".';
   }
   if (code.includes('weak-password')) {
     return 'Senha muito fraca. Digite pelo menos 6 caracteres.';
-  }
-  if (code.includes('operation-not-allowed')) {
-    return 'Este método de login não está ativado no Firebase Console. Use o cadastro por E-mail e Senha.';
   }
   if (code.includes('too-many-requests')) {
     return 'Muitas tentativas consecutivas. Aguarde alguns instantes antes de tentar novamente.';

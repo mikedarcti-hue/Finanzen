@@ -499,7 +499,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Google Sign-In failed', err);
       setIsAuthLoading(false);
-      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message, 'google'));
     }
   };
 
@@ -519,7 +519,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Email registration failed', err);
       setIsAuthLoading(false);
-      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message, 'email'));
     }
   };
 
@@ -530,7 +530,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err: any) {
       console.error('Email sign-in failed', err);
       setIsAuthLoading(false);
-      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message));
+      throw new Error(getFriendlyAuthErrorMessage(err.code || err.message, 'email'));
     }
   };
 
